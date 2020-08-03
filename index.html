@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+  <script src='https://d3js.org/d3.v5.min.js'></script>
+</head>
+
+<body body onload='init()'>
+  <h1>The Rise of China as the Second Biggest Economy</h1>
+  <p>In 40 years, China moved from an agricultural poor country to a superpower rivaling with United Sates.</p>
+  <p>Select the year or mouseover the plot to understand more details that drove this transition.</p>
+  <div class="AllButtons">
+      <div class="btn-group" id="buttons"></div>
+    <div class="leftColumn" id="canvas1">
+      <img src="https://raw.githubusercontent.com/gcbacel/cs498NarrativeVisualization/master/chinaflag.jpg"
+        class="marginauto" alt="centered image" width="108" height="70">
+      <style>
+        .marginauto {
+          margin: 20px auto 10px;
+          display: block;
+        }
+      </style>
+    </div>
+    <div class="rightColumn" id="Graph">
+      <svg id="canvas2"></svg>
+    </div>
+  </div>
+<script>
+  var info;
+  var step;
+  var w = 530;
+  var h = 510;
+  var padding = 40;
+  step = 0;
+  var years =[1976, 1979, 1986, 1990, 1995, 2001, 2007, 2012, 2017]
+  var svg2 = d3.select("#canvas2").attr("width", w).attr("height", h);
+  var svg1 = d3.select("#canvas1");
+  var tooltip = d3.select("#Graph").append("div").attr("id", "tooltip")
+  var WBdata;
+  
+  // array with all text of narrative. Three paragraphs per year
+  var Narrative = ["With the death of Mao Zedong, Deng gradually assumes more power, leading China through reforms in the economy.", "Peasants are granted the right to own their own food production, reducing the pressure of food shortage.", "China's GDP is equivalent to 8% of United States, which export 20x more. China's economy has negative GDP growth.", "China starts to open its economy to attract foreign technology and investments. ", "China re-establishes diplomatic ties with US, which see a great opportunity to access cheap labour and low rent costs.", "With the begining of reforms and increase in the investments, China has one of the biggest GDP growth in the world, superior to 9%.", "Patent Law and Wholly Foeign-Owned Enterprise Law are adopted for the first time by China.", "Foreign companies now have a regularization to operate in China. Foreign investments accelerate.", "In 10 years, China's exportation jumps 4.5x, the trade amount represents 20% of its GDP.", "China adopts for the first time a Copyright Law. Shanghai Stock Exchange is re-opened after 41 years.", "The death of leader Hu Yaobang brings instability, slowing down the economic and raising uncertainty over reforms. ", "GDP growth drops to 4%, behind Japan, Germany and India. GDP per capita increases, but it is still below $400.", "China adopts for the first time a Foreign Trade Law. First Employment Law and Labour Law start to be adopted.", "China adopts free float of its currency, Renminbi (RMB). First foreign exchange trading center is opened in Shanghai.", "Economy growth jumps to 11%, and a devaluated currency increases the manufacturing exports, representing now 1/3 of China's economy.", "China adopts a new unified Contract Law replacing the Economic, Foreign-related Economic and Technology Laws.", "US-China Relations Act is signed, easing trade barriers and facilitating China entry into the WTO. ", "GDP per capita passes $1,000 for the first time and China passes Italy as the 6th biggest economy, very close to France.", "China annouces a huge economic stimulus package to reduce the effects of the global economic crisis.", "Beijing host a successful Summer Olympics event, showing to the world a new organized and solid country.", "GDP growth accelerates to 14%, passing Germany as the 3rd biggest economy. Income per capita more than double in 5 years.", "Leader Xi Jinping announces a global infrastructure development strategy. First Free Trade Zone is opened in Shanghai.", "Trade tension grows and European Union, United States & Japan start a trade dispute against China with the WTO.", "Trade now represents around half of China's economy, becoming the biggest mearchindise export in the world, passing $2 tri per year.", "According to World Bank more than 850 million people have been lifted out of poverty.", "According to Standard Chartered, around 27% of China's workforce will have a university education by 2030.", "In the anniversary of 40 years of economic reforms, China becomes the second biggest economy in the world, with a 7% growth per year, still one of the biggest in the world. As the internal economy accelerates, export reduces its participation to 38% of GDP."];
+
+  function scatterplot(nyear, append) {
+    var year = years[nyear]
+    d3.select('#canvas1').selectAll('p').remove();
+    info = WBdata.filter(function (d) {
+      return d.year == year;  });
+
+    // create the scales
+    var xScale = d3.scaleLinear()
+      .domain(getMinMax(info, "gdpgrowth"))
+      .range([padding, w-padding*2]);
+    var yScale = d3.scaleLinear()
+      .domain(getMinMax(info, "gdp"))
+      .range([h-padding, padding]);
+    var aScale = d3.scaleSqrt()
+      .domain(getMinMax(info, "merchexport"))
+      .range([5,35]);
+    
+    //create circles with text and tooltips
+    if (append) {
+      svg2.selectAll("circle").data(info).enter().append("circle").transition()
+        .attr("cx", function(d) {return xScale(d.gdpgrowth);})
+        .attr("cy", function(d) {return yScale(d.gdp);})
+        .attr("r", function(d) {return aScale(d.merchexport);})
+        .attr("fill", function(d) {
+          if (d.country=="China") {return "red";}
+          else {return "darkgreen";}})
+        .attr("stroke", "black");
+  
+      svg2.selectAll("text").data(info).enter().append("text").transition()
+        .text(function(d) {return d.country;})
+        .attr("x", function(d) {return xScale(d.gdpgrowth);})
+        .attr("y", function(d) {return yScale(d.gdp);})
+        .attr("font-family", "sans-serif").attr("font-size", "12px")
+        .attr("font-weight", "600").attr("fill", "orange");
+
+      svg2.selectAll("circle").data(info)
+        .on("mouseover", function(d){ 
+          d3.select("#tooltip")
+            .style("visibility", "visible")
+            .style("top", (event.pageY-10)+"px")
+            .style("left", (event.pageX-200)+"px")
+            .html("<b><center>" + d.country + " (" + d.year + ")</center></b><br>" +
+                  "<b>Population: </b>" + d.population + "M<br>" +
+                  "<b>GDP per capita: </b>$ " + d.gdppercapita + "<br>" +
+                  "<b>Exports : </b>$ " +  d.export + "B<br>" +
+                  "<b>Trade (% of GDP): </b>" +  d.trade + "<br>" +
+                  "<b>Merch. trade (% of GDP): </b>" +  d.merchtrade)
+        })
+        .on("mouseout", function(){ 
+          d3.select("#tooltip").style("visibility", "hidden");
+        });
+
+    } else {
+      
+      svg2.selectAll("circle").data(info).transition()
+        .attr("cx", function(d) {return xScale(d.gdpgrowth);})
+        .attr("cy", function(d) {return yScale(d.gdp);})
+        .attr("r", function(d) {return aScale(d.export);})
+        .attr("fill", function(d) {
+          if (d.country=="China") {return "red";}
+          else {return "darkgreen";}})
+        .attr("stroke", "black")
+
+      svg2.selectAll("text").data(info).transition()
+        .text(function(d) {return d.country;})
+        .attr("x", function(d) {return xScale(d.gdpgrowth);})
+        .attr("y", function(d) {return yScale(d.gdp);})
+        .attr("font-family", "sans-serif").attr("font-size", "10px")
+        .attr("font-weight", "600").attr("fill", "orange");
+    }
+      
+    d3.select('#canvas2').selectAll('g').remove();
+    
+    //create the axis
+    var xAxis = d3.axisBottom(xScale);
+    svg2.append("g").attr("class", "axis")
+      .attr("transform", "translate(0," + (h-padding) + ")").call(xAxis)
+      .append("text").attr("x", 250).attr("y", 32).text("GDP Growth (%)")
+      .attr("font-size", "10px")
+      .attr("font-weight", "700").attr("fill", "black");
+    
+    svg2.select("g")
+      .append("text").attr("x", 470).attr("y", 40).text("Source: World Bank")
+      .attr("font-size", "8px").attr("fill", "black");
+    
+    var yAxis = d3.axisLeft().scale(yScale).ticks(10);
+    svg2.append("g").attr("class", "axis")
+      .attr("transform", "translate(" + padding + ",0)").call(yAxis)
+      .append("text").attr("x", 38).attr("y", 20).text("GDP ($ Billions)")
+      .attr("font-size", "10px")
+      .attr("font-weight", "700").attr("fill", "black");
+      
+    svg2.append("g")
+      .append("text").attr("x", 350).attr("y", 15)
+        .text("Circle Size: Merchandise Exports")
+        .attr("font-family", "sans-serif").attr("font-size", "10px")
+        .attr("font-weight", "600").attr("fill", "green");
+    
+    // add the texts
+    AddText = function(i) {
+      svg1.append("p")
+          .html("<b>Key economic facts in "+years[nyear]+"</b>");
+      svg1.append("p").html(Narrative[3*i]);
+      svg1.append("p").html(Narrative[3*i+1]);
+      svg1.append("p").html(Narrative[3*i+2]);
+    };
+    AddText(nyear);
+  }
+  
+  
+   // Function activate after the trigger of new parameter (year)
+  function changeview(step) {
+    scatterplot(step, false);
+    d3.selectAll(".bt").style("background-color", "white");
+    d3.select("#bt" + step).style("background-color", "orange");
+  }
+
+  // calculate min and max to the scale domain
+  function getMinMax(arr, attr) {
+    var max = 0;
+    var min = 0;
+    arr.forEach(function (member, index) {
+            if (member.hasOwnProperty(attr) &&
+              parseFloat(member[attr]) > parseFloat(max)) {max=member[attr];}
+            if (member.hasOwnProperty(attr) &&
+              parseFloat(member[attr]) < parseFloat(min)) {min=member[attr];}
+        });
+    return [min, max]; }
+  
+  // add all buttons  
+  for (var i=0; i<years.length; i++) {
+    d3.selectAll("#buttons").append("button").text(years[i])
+      .attr("type", "button").attr("onclick", "changeview(" + i + ")")
+      .attr("id", "bt" + i).attr("class", "bt");
+    }
+  d3.select("#bt0").style("background-color", "orange");
+
+  // read the csv data (source: World Bank)
+  async function init() {
+    WBdata = await d3.csv('https://raw.githubusercontent.com/gcbacel/cs498NarrativeVisualization/master/WorldBankEconomicData.csv');
+    scatterplot(0, true);
+  }
+
+</script>
+</body>
+</html>
